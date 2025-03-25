@@ -1,6 +1,9 @@
 # Auto detect text files and perform LF normalization
 * text=auto
-*.c linguist-detectable=true
+
+# Chỉ định C++ là ngôn ngữ chính
 *.cpp linguist-detectable=true
 *.h linguist-detectable=true
-*.py linguist-detectable=true
+*.c linguist-detectable=false
+*.py linguist-detectable=false
+
