@@ -1,0 +1,48 @@
+# depslib dependency file v1.0
+1742844521 source:c:\codeblock\bulletstorm\src\audio.cpp
+
+1742882074 source:c:\codeblock\bulletstorm\src\bullet.cpp
+	"Bullet.h"
+	<iostream>
+
+1742844521 source:c:\codeblock\bulletstorm\src\collision.cpp
+
+1742930186 source:c:\codeblock\bulletstorm\src\game.cpp
+	"Game.h"
+	<SDL_image.h>
+
+1742844521 source:c:\codeblock\bulletstorm\src\hud.cpp
+
+1742930186 source:c:\codeblock\bulletstorm\src\main.cpp
+	<SDL.h>
+	<SDL_image.h>
+	<iostream>
+	"Player.h"
+	"Bullet.h"
+
+1742928596 source:c:\codeblock\bulletstorm\src\menu.cpp
+	"Menu.h"
+	<SDL_image.h>
+	<iostream>
+
+1742901277 source:c:\codeblock\bulletstorm\src\player.cpp
+	"Player.h"
+	<SDL_image.h>
+	<iostream>
+
+1742896873 c:\codeblock\bulletstorm\src\player.h
+	<SDL.h>
+
+1742882074 c:\codeblock\bulletstorm\src\bullet.h
+	<SDL.h>
+	<vector>
+	<cmath>
+
+1742901498 c:\codeblock\bulletstorm\src\menu.h
+	<SDL.h>
+	<SDL_ttf.h>
+	<string>
+
+1742930186 c:\codeblock\bulletstorm\src\game.h
+	<SDL.h>
+
