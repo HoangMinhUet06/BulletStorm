@@ -1,4 +1,3 @@
-
 #ifndef MENU_H
 #define MENU_H
 
@@ -6,8 +5,7 @@
 #include <SDL_ttf.h>
 #include <string>
 
-// Danh sách các tùy chọn menu
-enum MenuOption { PLAY, TUTORIAL, SETTING, NONE };
+enum MenuOption { PLAY, NONE };
 
 class Menu {
 public:
@@ -21,9 +19,9 @@ public:
 private:
     SDL_Renderer* renderer;
     TTF_Font* font;
-    SDL_Color normalColor = {255, 255, 255}; // Màu trắng
-    SDL_Color hoverColor = {0, 0, 0};        // Màu đen
-    int selectedOption = NONE; // Mục menu đang được chọn
+    SDL_Color normalColor = {255, 255, 255};
+    SDL_Color hoverColor = {0, 0, 0};
+    int selectedOption = NONE;
 
     struct MenuItem {
         std::string text;
@@ -33,8 +31,6 @@ private:
     };
 
     MenuItem playButton;
-    MenuItem tutorialButton;
-    MenuItem settingButton;
 
     SDL_Texture* createTextTexture(const std::string& text, SDL_Color color);
 };
