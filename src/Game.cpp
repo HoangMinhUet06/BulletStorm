@@ -1,53 +1,84 @@
-
 #include "Game.h"
 #include <SDL_image.h>
+#include <iostream>
 
-Game::Game(SDL_Renderer* renderer) : renderer(renderer), background(nullptr), character(nullptr) {}
+Game::Game(SDL_Renderer* renderer) : renderer(renderer) {
+    // Khởi tạo các thành viên
+    player = nullptr;
+    bulletManager = nullptr;
+    background = nullptr;
+    character = nullptr;
+}
 
 Game::~Game() {
-    SDL_DestroyTexture(background);
-    SDL_DestroyTexture(character);
+    // Giải phóng bộ nhớ
+    delete player;
+    delete bulletManager;
+    if (background) SDL_DestroyTexture(background);
+    if (character) SDL_DestroyTexture(character);
 }
 
-void Game::loadResources() {
-    // Load background
-    SDL_Surface* bgSurface = IMG_Load("C:/CodeBlock/BulletStorm/assets/background.png");
-    background = SDL_CreateTextureFromSurface(renderer, bgSurface);
-    SDL_FreeSurface(bgSurface);
+void Game::update() {
+    if (player && bulletManager) {
+        // Cập nhật trạng thái người chơi
+        player->update();
 
-    // Load nhân vật
-    SDL_Surface* charSurface = IMG_Load("C:/CodeBlock/BulletStorm/assets/character.png");
-    character = SDL_CreateTextureFromSurface(renderer, charSurface);
-    SDL_FreeSurface(charSurface);
+        // Cập nhật trạng thái đạn
+        bulletManager->update();
 
-    // Định vị trí nhân vật ở góc trái màn hình
-    characterRect = {50, 450, 50, 50};
-}
+        // Kiểm tra va chạm
+        SDL_Rect playerBox = player->getCollisionBox();
+        const std::vector<Bullet*>& bullets = bulletManager->getBullets();
 
-void Game::handleEvent(SDL_Event& e) {
-    if (e.type == SDL_KEYDOWN) {
-        switch (e.key.keysym.sym) {
-            case SDLK_LEFT:
-                characterRect.x -= 10;
-                break;
-            case SDLK_RIGHT:
-                characterRect.x += 10;
-                break;
-            case SDLK_UP:
-                characterRect.y -= 10;
-                break;
-            case SDLK_DOWN:
-                characterRect.y += 10;
-                break;
+        for (Bullet* bullet : bullets) {
+            if (bullet->getActive()) {
+                SDL_Rect bulletBox = bullet->getRect();
+                if (SDL_HasIntersection(&playerBox, &bulletBox)) {
+                    player->takeDamage();
+                    bullet->setActive(false);
+                }
+            }
         }
     }
 }
 
-void Game::update() {
-    // Cập nhật logic game nếu cần
+void Game::render() {
+    // Xóa màn hình
+    SDL_RenderClear(renderer);
+
+    // Vẽ background
+    if (background) {
+        SDL_RenderCopy(renderer, background, nullptr, nullptr);
+    }
+
+    // Vẽ đạn
+    if (bulletManager) {
+        bulletManager->render(renderer);
+    }
+
+    // Vẽ người chơi
+    if (player) {
+        player->render();
+    }
+
+    // Hiển thị màn hình
+    SDL_RenderPresent(renderer);
 }
 
-void Game::render() {
-    SDL_RenderCopy(renderer, background, NULL, NULL);
-    SDL_RenderCopy(renderer, character, NULL, &characterRect);
+void Game::loadResources() {
+    // Load background
+    background = IMG_LoadTexture(renderer, "C:/BulletStorm/BulletStormX/assets/images/background.png");
+
+    // Khởi tạo người chơi
+    player = new Player(64, 768 - 64 - 20, renderer);
+
+    // Khởi tạo quản lý đạn
+    bulletManager = new BulletManager(renderer, 1024, 768);
+    bulletManager->setBulletColor(255, 255, 0);
+}
+
+void Game::handleEvent(SDL_Event& e) {
+    if (player) {
+        player->handleEvent(e);
+    }
 }
