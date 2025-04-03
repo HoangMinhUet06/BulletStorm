@@ -1,238 +1,203 @@
 #include "Bullet.h"
 #include <iostream>
 
-//--------------------------------//
-//       Lớp Bullet (đạn)         //
-//--------------------------------//
-
 Bullet::Bullet(float x, float y, float angle, float speed, SDL_Color color, SDL_Renderer* renderer)
     : x(x), y(y), angle(angle), speed(speed), color(color), renderer(renderer), isActive(true) {
-    // Tính toán vận tốc theo góc bắn
-    velocityX = speed * cos(angle);
-    velocityY = speed * sin(angle);
+    velocityX = speed * 0.08f * cos(angle);
+    velocityY = speed * 0.08f * sin(angle);
 }
 
-Bullet::~Bullet() {
-    // Không làm gì đặc biệt
-}
+Bullet::~Bullet() {}
 
 void Bullet::update() {
-    // Cập nhật vị trí đạn theo vận tốc
     x += velocityX;
     y += velocityY;
 
-    // Kiểm tra đạn ra khỏi màn hình
     if (isOffScreen()) {
-        isActive = false;  // Đánh dấu đạn không còn hoạt động
+        isActive = false;
     }
 }
 
-// Vẽ hình tròn sử dụng thuật toán Midpoint Circle
-void drawCircle(SDL_Renderer* renderer, int centerX, int centerY, int radius) {
-    int x = radius;
-    int y = 0;
-    int err = 0;
-
-    while (x >= y) {
-        SDL_RenderDrawPoint(renderer, centerX + x, centerY + y);
-        SDL_RenderDrawPoint(renderer, centerX + x, centerY - y);
-        SDL_RenderDrawPoint(renderer, centerX - x, centerY + y);
-        SDL_RenderDrawPoint(renderer, centerX - x, centerY - y);
-        SDL_RenderDrawPoint(renderer, centerX + y, centerY + x);
-        SDL_RenderDrawPoint(renderer, centerX + y, centerY - x);
-        SDL_RenderDrawPoint(renderer, centerX - y, centerY + x);
-        SDL_RenderDrawPoint(renderer, centerX - y, centerY - x);
-
-        if (err <= 0) {
-            y += 1;
-            err += 2 * y + 1;
-        }
-
-        if (err > 0) {
-            x -= 1;
-            err -= 2 * x + 1;
-        }
-    }
-}
-
-void Bullet::render() {
+void Bullet::render(SDL_Renderer* renderer) {
     if (!isActive) return;
 
-    // Đặt màu cho đạn
     SDL_SetRenderDrawColor(renderer, color.r, color.g, color.b, color.a);
 
-    // Vẽ đạn hình tròn đặc
     int centerX = static_cast<int>(x);
     int centerY = static_cast<int>(y);
 
-    // Vẽ hình tròn đặc bằng cách điền các đường ngang
     for (int y = -BULLET_RADIUS; y <= BULLET_RADIUS; y++) {
-        // Tính độ rộng x tại độ cao y
         int width = static_cast<int>(sqrt(BULLET_RADIUS * BULLET_RADIUS - y * y));
-
-        // Vẽ đường ngang tại y
         SDL_RenderDrawLine(renderer, centerX - width, centerY + y, centerX + width, centerY + y);
     }
 }
 
 bool Bullet::isOffScreen() {
-    // Kiểm tra đạn có nằm ngoài màn hình không
     return (x < -BULLET_RADIUS || x > 1024 + BULLET_RADIUS ||
             y < -BULLET_RADIUS || y > 768 + BULLET_RADIUS);
 }
 
 SDL_Rect Bullet::getRect() const {
-    // Trả về hình chữ nhật của đạn để kiểm tra va chạm
     return {static_cast<int>(x - BULLET_RADIUS), static_cast<int>(y - BULLET_RADIUS),
            BULLET_RADIUS * 2, BULLET_RADIUS * 2};
 }
 
-//--------------------------------//
-//     Lớp BulletManager         //
-//--------------------------------//
-
 BulletManager::BulletManager(SDL_Renderer* renderer, int screenWidth, int screenHeight)
     : renderer(renderer), screenWidth(screenWidth), screenHeight(screenHeight) {
-    // Vị trí bắn đạn ở 3/4 chiều cao màn hình
     spawnY = screenHeight * 0.75f;
-
-    // Khởi tạo pattern đầu tiên là bắn thẳng
-    currentPattern = STRAIGHT_PATTERN;
-
-    // Khởi tạo thời gian
+    currentPattern = CORNER_PATTERN;
     lastPatternTime = SDL_GetTicks();
     lastCornerTime = SDL_GetTicks();
-
-    // Màu đạn mặc định (trắng)
+    lastBulletTime = SDL_GetTicks();
     bulletColor = {255, 255, 255, 255};
 }
 
 BulletManager::~BulletManager() {
-    // Giải phóng tất cả đạn
     clearBullets();
 }
 
-void BulletManager::setBulletColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
-    bulletColor = {r, g, b, a};
-}
-
 void BulletManager::createBullet(float x, float y, float angle) {
-    // Kiểm tra giới hạn số lượng đạn
-    if (bullets.size() < MAX_BULLETS) {
-        bullets.push_back(new Bullet(x, y, angle, BULLET_SPEED, bulletColor, renderer));
-    }
+    if (bullets.size() >= MAX_BULLETS) return;
+    bullets.push_back(new Bullet(x, y, angle, BULLET_SPEED, bulletColor, renderer));
 }
 
-//--------------------------------//
-//     Các pattern đạn            //
-//--------------------------------//
+void BulletManager::createCornerPattern() {
+    Uint32 currentTime = SDL_GetTicks();
+    if (currentTime - lastBulletTime < BULLET_DELAY) return;
 
-void BulletManager::createStraightPattern() {
-    // Bắn thẳng từ giữa màn hình lên trên
-    float centerX = screenWidth / 2.0f;
-    createBullet(centerX, spawnY, -PI/2);  // Góc -90 độ (lên trên)
+    // Bắn từ 4 góc
+    createBullet(0, 0, PI/4);                    // Góc trên trái
+    createBullet(screenWidth, 0, 3*PI/4);        // Góc trên phải
+    createBullet(screenWidth, screenHeight, 5*PI/4); // Góc dưới phải
+    createBullet(0, screenHeight, 7*PI/4);       // Góc dưới trái
+
+    lastBulletTime = currentTime;
 }
 
-void BulletManager::createSpreadPattern() {
-    // Tạo pattern tỏa tròn từ giữa màn hình
+void BulletManager::createCenterPattern() {
+    Uint32 currentTime = SDL_GetTicks();
+    if (currentTime - lastBulletTime < BULLET_DELAY) return;
+
     float centerX = screenWidth / 2.0f;
-    int numBullets = 20;  // Số đạn trong một vòng tròn
+    float centerY = screenHeight / 4.0f;  // Vị trí 1/4 màn hình từ trên xuống
 
-    // Tạo đạn theo hình tròn
-    for (int i = 0; i < numBullets; i++) {
-        float angle = (2 * PI * i) / numBullets;
-        createBullet(centerX, spawnY, angle);
-    }
-}
-
-void BulletManager::createSpiralPattern() {
-    // Tạo pattern xoáy từ giữa màn hình
-    static float spiralAngle = 0;  // Lưu góc xoáy giữa các lần gọi
-    float centerX = screenWidth / 2.0f;
-
-    // Tạo 5 đạn trong một spiral
-    for (int i = 0; i < 5; i++) {
-        float angle = spiralAngle + (2 * PI * i) / 5;
-        createBullet(centerX, spawnY, angle);
+    // Bắn nhiều hướng từ trung tâm
+    for (int i = 0; i < 8; i++) {
+        float angle = (2 * PI * i) / 8;
+        createBullet(centerX, centerY, angle);
     }
 
-    // Tăng góc xoáy cho lần bắn tiếp theo
-    spiralAngle += 0.2f;
+    lastBulletTime = currentTime;
 }
 
 void BulletManager::createConePattern() {
-    // Tạo pattern hình chóp/quạt từ giữa màn hình
-    float centerX = screenWidth / 2.0f;
-    int numBullets = 7;  // Số đạn trong một cone
-    float spreadAngle = PI/3;  // Góc spread của cone (60 độ)
+    Uint32 currentTime = SDL_GetTicks();
+    if (currentTime - lastBulletTime < BULLET_DELAY) return;
 
-    // Tạo đạn trong phạm vi góc
-    for (int i = 0; i < numBullets; i++) {
-        // Tính góc từ -spreadAngle/2 đến +spreadAngle/2 quanh trục thẳng lên trên (-PI/2)
-        float angle = -PI/2 - spreadAngle/2 + (spreadAngle * i)/(numBullets-1);
-        createBullet(centerX, spawnY, angle);
+    static float coneAngle = 0;
+    float centerX = screenWidth / 2.0f;
+    float centerY = screenHeight / 4.0f;
+
+    // Tạo pattern nón xoay
+    for (int i = 0; i < 12; i++) {
+        float angle = coneAngle + (PI/3 * i) / 12;  // Góc spread 60 độ
+        createBullet(centerX, centerY, angle);
     }
+
+    coneAngle += 0.1f;  // Tốc độ xoay
+    lastBulletTime = currentTime;
 }
 
-void BulletManager::shootFromCorners() {
-    // Kiểm tra thời gian delay giữa các lần bắn góc
+void BulletManager::createSidePattern() {
     Uint32 currentTime = SDL_GetTicks();
-    if (currentTime - lastCornerTime < CORNER_DELAY) return;
+    if (currentTime - lastBulletTime < BULLET_DELAY) return;
 
-    // Bắn từ 4 góc cùng lúc
+    // Bắn từ 4 bên vuông góc
+    for (int i = 0; i < 5; i++) {
+        float y = screenHeight * (i + 1) / 6;  // Chia đều theo chiều dọc
+        createBullet(0, y, 0);                 // Bên trái
+        createBullet(screenWidth, y, PI);      // Bên phải
+    }
 
-    // Góc trên trái -> bắn hướng xuống phải
-    createBullet(0, 0, PI/4);
+    for (int i = 0; i < 5; i++) {
+                float x = screenWidth * (i + 1) / 6;   // Chia đều theo chiều ngang
+        createBullet(x, 0, PI/2);              // Bên trên
+        createBullet(x, screenHeight, -PI/2);  // Bên dưới
+    }
 
-    // Góc trên phải -> bắn hướng xuống trái
-    createBullet(screenWidth, 0, 3*PI/4);
+    lastBulletTime = currentTime;
+}
 
-    // Góc dưới phải -> bắn hướng lên trái
-    createBullet(screenWidth, screenHeight, 5*PI/4);
+void BulletManager::createSpiralPattern() {
+    Uint32 currentTime = SDL_GetTicks();
+    if (currentTime - lastBulletTime < BULLET_DELAY) return;
 
-    // Góc dưới trái -> bắn hướng lên phải
-    createBullet(0, screenHeight, 7*PI/4);
+    static float spiralAngle = 0;
+    float centerX = screenWidth / 2.0f;
+    float centerY = screenHeight / 4.0f;
 
-    // Cập nhật thời gian bắn cuối
-    lastCornerTime = currentTime;
+    // Tạo pattern xoáy
+    for (int i = 0; i < 4; i++) {
+        float angle = spiralAngle + (2 * PI * i) / 4;
+        createBullet(centerX, centerY, angle);
+    }
+
+    spiralAngle += 0.2f;  // Tốc độ xoay
+    lastBulletTime = currentTime;
+}
+
+void BulletManager::createSpreadPattern() {
+    Uint32 currentTime = SDL_GetTicks();
+    if (currentTime - lastBulletTime < BULLET_DELAY) return;
+
+    float centerX = screenWidth / 2.0f;
+    float centerY = screenHeight / 4.0f;
+    int numBullets = 16;  // Số lượng đạn tỏa ra
+
+    // Tạo pattern tỏa ra
+    for (int i = 0; i < numBullets; i++) {
+        float angle = (2 * PI * i) / numBullets;
+        createBullet(centerX, centerY, angle);
+    }
+
+    lastBulletTime = currentTime;
 }
 
 void BulletManager::updatePatterns() {
     Uint32 currentTime = SDL_GetTicks();
 
-    // Luôn bắn từ 4 góc theo chu kỳ
-    shootFromCorners();
-
-    // Kiểm tra thời gian để chuyển pattern ở giữa màn hình
+    // Chuyển pattern ngẫu nhiên
     if (currentTime - lastPatternTime >= PATTERN_DELAY) {
-        // Chọn pattern tiếp theo theo thứ tự
-        switch (currentPattern) {
-            case STRAIGHT_PATTERN:
-                // Bắn thẳng -> chuyển sang pattern xoáy
-                createStraightPattern();
-                currentPattern = SPIRAL_PATTERN;
-                break;
-
-            case SPIRAL_PATTERN:
-                // Xoáy -> chuyển sang pattern chóp
-                createSpiralPattern();
-                currentPattern = CONE_PATTERN;
-                break;
-
-            case CONE_PATTERN:
-                // Chóp -> quay lại pattern bắn thẳng
-                createConePattern();
-                currentPattern = STRAIGHT_PATTERN;
-                break;
-        }
-
-        // Cập nhật thời gian pattern cuối
+        // Tạo số ngẫu nhiên từ 0 đến 5
+        int randomPattern = rand() % 6;
+        currentPattern = static_cast<PatternState>(randomPattern);
         lastPatternTime = currentTime;
     }
-}
 
+    // Thực hiện pattern hiện tại
+    switch (currentPattern) {
+        case CORNER_PATTERN:
+            createCornerPattern();
+            break;
+        case CENTER_PATTERN:
+            createCenterPattern();
+            break;
+        case CONE_PATTERN:
+            createConePattern();
+            break;
+        case SIDE_PATTERN:
+            createSidePattern();
+            break;
+        case SPIRAL_PATTERN:
+            createSpiralPattern();
+            break;
+        case SPREAD_PATTERN:
+            createSpreadPattern();
+            break;
+    }
+}
 void BulletManager::update() {
-    // Cập nhật các pattern theo thời gian
+    // Cập nhật các pattern
     updatePatterns();
 
     // Cập nhật vị trí từng viên đạn
@@ -241,17 +206,16 @@ void BulletManager::update() {
             (*it)->update();
             ++it;
         } else {
-            // Xóa đạn không còn hoạt động
             delete *it;
             it = bullets.erase(it);
         }
     }
 }
 
-void BulletManager::render() {
+void BulletManager::render(SDL_Renderer* renderer) {
     // Vẽ tất cả các đạn đang hoạt động
     for (auto bullet : bullets) {
-        bullet->render();
+        bullet->render(renderer);
     }
 }
 
@@ -261,4 +225,8 @@ void BulletManager::clearBullets() {
         delete bullet;
     }
     bullets.clear();
+}
+
+void BulletManager::setBulletColor(Uint8 r, Uint8 g, Uint8 b, Uint8 a) {
+    bulletColor = {r, g, b, a};
 }
