@@ -6,7 +6,14 @@
 **Lớp Môn học:** INT 2215 - 4  
 
 ---
+## Giới thiệu game 
+- Khi vào game bạn sẽ nhập vai thành 1 nhân vật để né tránh rất nhiều loạt đạn được bắn ra từ nhiều hướng với các độ khó khác nhau  , game lấy bối cảnh của tương lai khiến cho người chơi cảm thấy thú vị
 
+---
+## Hướng dẫn chơi game
+- Người chơi có thế nhấn di chuyển trái phải để né và nhảy lên
+
+--- 
 
 ## Các tính năng cải tiến trong game
 - Hệ thống âm thanh và font chữ được đổi mới, phù hợp với phong cách game.
